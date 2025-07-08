@@ -1,0 +1,350 @@
+name: Step 4-5 # Add Bulk Unit Tests
+
+on:
+  push:
+    branches:
+      - feature/test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  find_exercise:
+    name: Find Exercise Issue
+    uses: skills/exercise-toolkit/.github/workflows/find-exercise-issue.yml@v0.4.0
+
+  check_step_work:
+    name: Check step work
+    runs-on: ubuntu-latest
+    needs: [find_exercise]
+    env:
+      ISSUE_URL: ${{ needs.find_exercise.outputs.issue-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get response templates
+        uses: actions/checkout@v4
+        with:
+          repository: skills/exercise-toolkit
+          path: exercise-toolkit
+          ref: v0.4.0
+
+      - name: Update comment - checking work
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file exercise-toolkit/markdown-templates/step-feedback/checking-work.md \
+            --edit-last
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # START: Check practical exercise
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Backend tests checks
+      - name: Check for backend test file existence
+        id: check-backend-test-exists
+        continue-on-error: true
+        run: |
+          if [ ! -f "packages/backend/__tests__/app.test.js" ]; then
+            echo "Backend test file doesn't exist at packages/backend/__tests__/app.test.js"
+            exit 1
+          fi
+          exit 0
+
+      - name: Check for GET keyword in backend tests
+        id: check-get-keyword
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'get'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for GET uppercase in backend tests
+        id: check-get-uppercase
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'GET'
+          minimum-occurrences: 1
+          case-sensitive: true
+
+      - name: Check for items API endpoint in backend tests
+        id: check-items-endpoint
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: '/api/items'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for post keyword in backend tests
+        id: check-post-keyword
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'post'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for POST uppercase in backend tests
+        id: check-post-uppercase
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'POST'
+          minimum-occurrences: 1
+          case-sensitive: true
+
+      - name: Check for create keyword in backend tests
+        id: check-create-keyword-backend
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'create'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      # Frontend tests checks
+      - name: Check for frontend test file existence
+        id: check-frontend-test-exists
+        continue-on-error: true
+        run: |
+          if [ ! -f "packages/frontend/src/__tests__/App.test.js" ]; then
+            echo "Frontend test file doesn't exist at packages/frontend/src/__tests__/App.test.js"
+            exit 1
+          fi
+          exit 0
+
+      - name: Check for fetch keyword in frontend tests
+        id: check-fetch-keyword
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'fetch'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for get keyword in frontend tests
+        id: check-get-keyword-frontend
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'get'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for load items in frontend tests
+        id: check-load-items
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'load items'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for display items in frontend tests
+        id: check-display-items
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'display items'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for create keyword in frontend tests
+        id: check-create-keyword-frontend
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'create'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for add keyword in frontend tests
+        id: check-add-keyword
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'add'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for new item in frontend tests
+        id: check-new-item
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'new item'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for submit in frontend tests
+        id: check-submit
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/frontend/src/__tests__/App.test.js
+          keyphrase: 'submit'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      # Run tests
+      - name: Run backend tests
+        id: run-backend-tests
+        continue-on-error: true
+        run: |
+          cd packages/backend
+          npm test
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            echo "Backend tests failed to run successfully"
+            exit 1
+          fi
+          exit 0
+
+      - name: Run frontend tests
+        id: run-frontend-tests
+        continue-on-error: true
+        run: |
+          cd packages/frontend
+          npm test
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            echo "Frontend tests failed to run successfully"
+            exit 1
+          fi
+          exit 0
+
+      - name: Build message - step results
+        id: build-message-step-results
+        uses: skills/action-text-variables@v2
+        with:
+          template-file: exercise-toolkit/markdown-templates/step-feedback/step-results-table.md
+          template-vars: |
+            step_number: 4-5
+            passed: ${{ !contains(steps.*.outcome, 'failure') }}
+            results_table:
+              - description: "Backend test file should exist"
+                passed: ${{ steps.check-backend-test-exists.outcome == 'success' }}
+              - description: "Backend tests should include tests for GET API"
+                passed: ${{ steps.check-get-keyword.outcome == 'success' || steps.check-get-uppercase.outcome == 'success' }}
+              - description: "Backend tests should reference the correct API endpoint"
+                passed: ${{ steps.check-items-endpoint.outcome == 'success' }}
+              - description: "Backend tests should include tests for POST API"
+                passed: ${{ steps.check-post-keyword.outcome == 'success' || steps.check-post-uppercase.outcome == 'success' }}
+              - description: "Backend tests should include tests for item creation"
+                passed: ${{ steps.check-create-keyword-backend.outcome == 'success' }}
+              - description: "Frontend test file should exist"
+                passed: ${{ steps.check-frontend-test-exists.outcome == 'success' }}
+              - description: "Frontend tests should include tests for fetching items"
+                passed: ${{ steps.check-fetch-keyword.outcome == 'success' || steps.check-get-keyword-frontend.outcome == 'success' || steps.check-load-items.outcome == 'success' || steps.check-display-items.outcome == 'success' }}
+              - description: "Frontend tests should include tests for creating items"
+                passed: ${{ steps.check-create-keyword-frontend.outcome == 'success' || steps.check-add-keyword.outcome == 'success' || steps.check-new-item.outcome == 'success' || steps.check-submit.outcome == 'success' }}
+              - description: "Backend tests should run successfully"
+                passed: ${{ steps.run-backend-tests.outcome == 'success' }}
+              - description: "Frontend tests should run successfully"
+                passed: ${{ steps.run-frontend-tests.outcome == 'success' }}
+
+      - name: Create comment - step results
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body "$COMMENT_BODY" \
+            --edit-last
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_BODY: ${{ steps.build-message-step-results.outputs.updated-text }}
+
+      - name: Debug step outcomes
+        run: |
+          echo "Overall result: ${{ contains(steps.*.outcome, 'failure') && 'FAILURE' || 'SUCCESS' }}"
+          echo ""
+          echo "Failed steps (if any):"
+          echo '${{ toJSON(steps) }}' | jq -r 'to_entries[] | select(.value.outcome == "failure") | "❌ \(.key)"' || echo "No failures detected"
+
+      - name: Fail job if not all checks passed
+        if: contains(steps.*.outcome, 'failure')
+        run: exit 1
+
+      # END: Check practical exercise
+
+      - name: Build message - step finished
+        id: build-message-step-finish
+        uses: skills/action-text-variables@v2
+        with:
+          template-file: exercise-toolkit/markdown-templates/step-feedback/step-finished-prepare-next-step.md
+          template-vars: |
+            next_step_number: 5-1
+
+      - name: Update comment - step finished
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body "$ISSUE_BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ steps.build-message-step-finish.outputs.updated-text }}
+
+  post_next_step_content:
+    name: Post next step content
+    needs: [find_exercise, check_step_work]
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_URL: ${{ needs.find_exercise.outputs.issue-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get response templates
+        uses: actions/checkout@v4
+        with:
+          repository: skills/exercise-toolkit
+          path: exercise-toolkit
+          ref: v0.4.0
+
+      - name: Create comment - add step content
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file ".github/steps/4-6-integration-test.md"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create comment - watching for progress
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file exercise-toolkit/markdown-templates/step-feedback/watching-for-progress.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Disable current workflow and enable next one
+        run: |
+          gh workflow disable "Step 4-5"
+          gh workflow enable "Step 4-6"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
