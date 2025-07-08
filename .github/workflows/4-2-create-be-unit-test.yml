@@ -1,0 +1,209 @@
+name: Step 4-2 # Create Backend Unit Tests
+
+on:
+  push:
+    branches:
+      - feature/test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  find_exercise:
+    name: Find Exercise Issue
+    uses: skills/exercise-toolkit/.github/workflows/find-exercise-issue.yml@v0.4.0
+
+  check_step_work:
+    name: Check step work
+    runs-on: ubuntu-latest
+    needs: [find_exercise]
+    env:
+      ISSUE_URL: ${{ needs.find_exercise.outputs.issue-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get response templates
+        uses: actions/checkout@v4
+        with:
+          repository: skills/exercise-toolkit
+          path: exercise-toolkit
+          ref: v0.4.0
+
+      - name: Update comment - checking work
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file exercise-toolkit/markdown-templates/step-feedback/checking-work.md \
+            --edit-last
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # START: Check practical exercise
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for backend test file existence
+        id: check-backend-test-exists
+        continue-on-error: true
+        run: |
+          if [ ! -f "packages/backend/__tests__/app.test.js" ]; then
+            echo "Backend test file doesn't exist at packages/backend/__tests__/app.test.js"
+            exit 1
+          fi
+          exit 0
+
+      - name: Check for delete keyword in backend tests
+        id: check-delete-keyword
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'delete'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for API endpoint path in backend tests
+        id: check-api-endpoint
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: '/api/items/'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for describe blocks in test structure
+        id: check-describe-structure
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'describe'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Check for expect assertions in test structure
+        id: check-expect-structure
+        continue-on-error: true
+        uses: skills/action-keyphrase-checker@v1
+        with:
+          text-file: packages/backend/__tests__/app.test.js
+          keyphrase: 'expect'
+          minimum-occurrences: 1
+          case-sensitive: false
+
+      - name: Run backend tests
+        id: run-backend-tests
+        continue-on-error: true
+        run: |
+          cd packages/backend
+          npm test
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            echo "Backend tests failed to run successfully"
+            exit 1
+          fi
+          exit 0
+
+      - name: Build message - step results
+        id: build-message-step-results
+        uses: skills/action-text-variables@v2
+        with:
+          template-file: exercise-toolkit/markdown-templates/step-feedback/step-results-table.md
+          template-vars: |
+            step_number: 4-2
+            passed: ${{ !contains(steps.*.outcome, 'failure') }}
+            results_table:
+              - description: "Backend test file should exist at packages/backend/__tests__/app.test.js"
+                passed: ${{ steps.check-backend-test-exists.outcome == 'success' }}
+              - description: "Backend test file should contain tests for DELETE operations"
+                passed: ${{ steps.check-delete-keyword.outcome == 'success' }}
+              - description: "Backend test file should reference the correct API endpoint path"
+                passed: ${{ steps.check-api-endpoint.outcome == 'success' }}
+              - description: "Backend test file should use describe blocks for test organization"
+                passed: ${{ steps.check-describe-structure.outcome == 'success' }}
+              - description: "Backend test file should include expect assertions"
+                passed: ${{ steps.check-expect-structure.outcome == 'success' }}
+              - description: "Backend tests should run successfully without errors"
+                passed: ${{ steps.run-backend-tests.outcome == 'success' }}
+
+      - name: Create comment - step results
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body "$COMMENT_BODY" \
+            --edit-last
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_BODY: ${{ steps.build-message-step-results.outputs.updated-text }}
+
+      - name: Fail job if not all checks passed
+        if: contains(steps.*.outcome, 'failure')
+        run: exit 1
+
+      # END: Check practical exercise
+
+      - name: Build message - step finished
+        id: build-message-step-finish
+        uses: skills/action-text-variables@v2
+        with:
+          template-file: exercise-toolkit/markdown-templates/step-feedback/step-finished-prepare-next-step.md
+          template-vars: |
+            next_step_number: 4-3
+
+      - name: Update comment - step finished
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body "$ISSUE_BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ steps.build-message-step-finish.outputs.updated-text }}
+
+  post_next_step_content:
+    name: Post next step content
+    needs: [find_exercise, check_step_work]
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_URL: ${{ needs.find_exercise.outputs.issue-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get response templates
+        uses: actions/checkout@v4
+        with:
+          repository: skills/exercise-toolkit
+          path: exercise-toolkit
+          ref: v0.4.0
+
+      - name: Create comment - add step content
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file ".github/steps/4-3-create-fe-unit-test.md"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create comment - watching for progress
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file exercise-toolkit/markdown-templates/step-feedback/watching-for-progress.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Disable current workflow and enable next one
+        run: |
+          gh workflow disable "Step 4-2"
+          gh workflow enable "Step 4-3"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
