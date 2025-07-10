@@ -47,14 +47,14 @@ app.get('/api/items', (req, res) => {
 app.post('/api/items', (req, res) => {
   try {
     const { name } = req.body;
-    
+
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return res.status(400).json({ error: 'Item name is required' });
     }
-    
+
     const result = insertStmt.run(name);
     const id = result.lastInsertRowid;
-    
+
     const newItem = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
     res.status(201).json(newItem);
   } catch (error) {
@@ -66,16 +66,16 @@ app.post('/api/items', (req, res) => {
 app.delete('/api/items/:id', (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if item exists
     const item = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
     // Delete the item
     db.prepare('DELETE FROM items WHERE id = ?').run(id);
-    
+
     res.status(200).json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);

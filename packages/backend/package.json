@@ -5,7 +5,10 @@
   "main": "src/index.js",
   "scripts": {
     "start": "nodemon src/index.js",
-    "test": "jest --detectOpenHandles"
+    "test": "jest --detectOpenHandles",
+    "lint": "eslint 'src/**/*.js' '__tests__/**/*.js'",
+    "lint:fix": "eslint 'src/**/*.js' '__tests__/**/*.js' --fix",
+    "format": "prettier --write 'src/**/*.js' '__tests__/**/*.js'"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
@@ -16,6 +19,11 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^27.6.0",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^3.1.1"
   }
 }

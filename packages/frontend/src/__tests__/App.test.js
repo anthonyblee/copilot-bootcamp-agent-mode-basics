@@ -17,18 +17,15 @@ const server = setupServer(
       ])
     );
   }),
-  
+
   // POST /api/items handler
   rest.post('/api/items', (req, res, ctx) => {
     const { name } = req.body;
-    
+
     if (!name || name.trim() === '') {
-      return res(
-        ctx.status(400),
-        ctx.json({ error: 'Item name is required' })
-      );
+      return res(ctx.status(400), ctx.json({ error: 'Item name is required' }));
     }
-    
+
     return res(
       ctx.status(201),
       ctx.json({
@@ -38,23 +35,17 @@ const server = setupServer(
       })
     );
   }),
-  
+
   // DELETE /api/items/:id handler
   rest.delete('/api/items/:id', (req, res, ctx) => {
     const { id } = req.params;
-    
+
     // Simulate not found for id 999
     if (id === '999') {
-      return res(
-        ctx.status(404),
-        ctx.json({ error: 'Item not found' })
-      );
+      return res(ctx.status(404), ctx.json({ error: 'Item not found' }));
     }
-    
-    return res(
-      ctx.status(200),
-      ctx.json({ message: 'Item deleted successfully' })
-    );
+
+    return res(ctx.status(200), ctx.json({ message: 'Item deleted successfully' }));
   })
 );
 
@@ -76,10 +67,10 @@ describe('App Component', () => {
     await act(async () => {
       render(<App />);
     });
-    
+
     // Initially shows loading state
     expect(screen.getByText('Loading data...')).toBeInTheDocument();
-    
+
     // Wait for items to load
     await waitFor(() => {
       expect(screen.getByText('Test Item 1')).toBeInTheDocument();
@@ -89,27 +80,27 @@ describe('App Component', () => {
 
   test('adds a new item', async () => {
     const user = userEvent.setup();
-    
+
     await act(async () => {
       render(<App />);
     });
-    
+
     // Wait for items to load
     await waitFor(() => {
       expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
     });
-    
+
     // Fill in the form and submit
     const input = screen.getByPlaceholderText('Enter item name');
     await act(async () => {
       await user.type(input, 'New Test Item');
     });
-    
+
     const submitButton = screen.getByText('Add Item');
     await act(async () => {
       await user.click(submitButton);
     });
-    
+
     // Check that the new item appears
     await waitFor(() => {
       expect(screen.getByText('New Test Item')).toBeInTheDocument();
@@ -123,11 +114,11 @@ describe('App Component', () => {
         return res(ctx.status(500));
       })
     );
-    
+
     await act(async () => {
       render(<App />);
     });
-    
+
     // Wait for error message
     await waitFor(() => {
       expect(screen.getByText(/Failed to fetch data/)).toBeInTheDocument();
@@ -141,38 +132,38 @@ describe('App Component', () => {
         return res(ctx.status(200), ctx.json([]));
       })
     );
-    
+
     await act(async () => {
       render(<App />);
     });
-    
+
     // Wait for empty state message
     await waitFor(() => {
       expect(screen.getByText('No items found. Add some!')).toBeInTheDocument();
     });
   });
-  
+
   test('deletes an item', async () => {
     const user = userEvent.setup();
-    
+
     await act(async () => {
       render(<App />);
     });
-    
+
     // Wait for items to load
     await waitFor(() => {
       expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
     });
-    
+
     // Find the delete button for Test Item 1
     const deleteButtons = screen.getAllByRole('button', { name: /Delete Test Item/ });
     expect(deleteButtons.length).toBeGreaterThan(0);
-    
+
     // Click the first delete button
     await act(async () => {
       await user.click(deleteButtons[0]);
     });
-    
+
     // Check that the item was removed from the DOM
     await waitFor(() => {
       // We should now have one fewer item in the list
@@ -180,32 +171,32 @@ describe('App Component', () => {
       expect(remainingDeleteButtons.length).toBe(deleteButtons.length - 1);
     });
   });
-  
+
   test('handles delete error', async () => {
     const user = userEvent.setup();
-    
+
     // Override the handler to simulate a delete failure
     server.use(
       rest.delete('/api/items/:id', (req, res, ctx) => {
         return res(ctx.status(500));
       })
     );
-    
+
     await act(async () => {
       render(<App />);
     });
-    
+
     // Wait for items to load
     await waitFor(() => {
       expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
     });
-    
+
     // Find and click a delete button
     const deleteButton = screen.getAllByRole('button', { name: /Delete Test Item/ })[0];
     await act(async () => {
       await user.click(deleteButton);
     });
-    
+
     // Wait for error message
     await waitFor(() => {
       expect(screen.getByText(/Error deleting item/)).toBeInTheDocument();
