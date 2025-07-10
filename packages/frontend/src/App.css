@@ -67,10 +67,28 @@ li {
   padding: 10px;
   border-bottom: 1px solid #ddd;
   text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 li:last-child {
   border-bottom: none;
+}
+
+.delete-button {
+  background-color: transparent;
+  color: #d32f2f;
+  padding: 4px 8px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-button:hover {
+  background-color: #ffebee;
+  transform: scale(1.1);
 }
 
 .error {

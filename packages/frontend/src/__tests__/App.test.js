@@ -37,6 +37,24 @@ const server = setupServer(
         created_at: new Date().toISOString(),
       })
     );
+  }),
+  
+  // DELETE /api/items/:id handler
+  rest.delete('/api/items/:id', (req, res, ctx) => {
+    const { id } = req.params;
+    
+    // Simulate not found for id 999
+    if (id === '999') {
+      return res(
+        ctx.status(404),
+        ctx.json({ error: 'Item not found' })
+      );
+    }
+    
+    return res(
+      ctx.status(200),
+      ctx.json({ message: 'Item deleted successfully' })
+    );
   })
 );
 
@@ -50,7 +68,7 @@ describe('App Component', () => {
     await act(async () => {
       render(<App />);
     });
-    expect(screen.getByText('React Frontend with Node Backend')).toBeInTheDocument();
+    expect(screen.getByText('Hello World')).toBeInTheDocument();
     expect(screen.getByText('Connected to in-memory database')).toBeInTheDocument();
   });
 
@@ -131,6 +149,66 @@ describe('App Component', () => {
     // Wait for empty state message
     await waitFor(() => {
       expect(screen.getByText('No items found. Add some!')).toBeInTheDocument();
+    });
+  });
+  
+  test('deletes an item', async () => {
+    const user = userEvent.setup();
+    
+    await act(async () => {
+      render(<App />);
+    });
+    
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+    });
+    
+    // Find the delete button for Test Item 1
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete Test Item/ });
+    expect(deleteButtons.length).toBeGreaterThan(0);
+    
+    // Click the first delete button
+    await act(async () => {
+      await user.click(deleteButtons[0]);
+    });
+    
+    // Check that the item was removed from the DOM
+    await waitFor(() => {
+      // We should now have one fewer item in the list
+      const remainingDeleteButtons = screen.getAllByRole('button', { name: /Delete Test Item/ });
+      expect(remainingDeleteButtons.length).toBe(deleteButtons.length - 1);
+    });
+  });
+  
+  test('handles delete error', async () => {
+    const user = userEvent.setup();
+    
+    // Override the handler to simulate a delete failure
+    server.use(
+      rest.delete('/api/items/:id', (req, res, ctx) => {
+        return res(ctx.status(500));
+      })
+    );
+    
+    await act(async () => {
+      render(<App />);
+    });
+    
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+    });
+    
+    // Find and click a delete button
+    const deleteButton = screen.getAllByRole('button', { name: /Delete Test Item/ })[0];
+    await act(async () => {
+      await user.click(deleteButton);
+    });
+    
+    // Wait for error message
+    await waitFor(() => {
+      expect(screen.getByText(/Error deleting item/)).toBeInTheDocument();
     });
   });
 });
