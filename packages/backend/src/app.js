@@ -66,15 +66,21 @@ app.post('/api/items', (req, res) => {
 app.delete('/api/items/:id', (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Validate that ID is a valid number
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ error: 'Invalid item ID' });
+    }
 
     // Check if item exists
-    const item = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
+    const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numericId);
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
 
     // Delete the item
-    db.prepare('DELETE FROM items WHERE id = ?').run(id);
+    db.prepare('DELETE FROM items WHERE id = ?').run(numericId);
 
     res.status(200).json({ message: 'Item deleted successfully' });
   } catch (error) {
