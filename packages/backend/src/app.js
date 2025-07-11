@@ -79,6 +79,20 @@ app.delete('/api/items/:id', (req, res) => {
       return res.status(404).json({ error: 'Item not found' });
     }
 
+    // Check if the item is at least 5 days old
+    const createdAt = new Date(item.created_at);
+    const now = new Date();
+    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
+    const ageInMs = now - createdAt;
+    const ageInDays = Math.floor(ageInMs / (24 * 60 * 60 * 1000));
+    
+    if (ageInMs < fiveDaysInMs) {
+      return res.status(403).json({ 
+        error: 'Cannot delete items newer than 5 days',
+        itemAge: ageInDays
+      });
+    }
+
     // Delete the item
     db.prepare('DELETE FROM items WHERE id = ?').run(numericId);
 

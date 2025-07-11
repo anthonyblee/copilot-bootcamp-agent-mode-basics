@@ -76,7 +76,13 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete item');
+        const errorData = await response.json();
+        
+        if (response.status === 403) {
+          throw new Error(`Item is too new (${errorData.itemAge} days old). Items must be at least 5 days old to delete.`);
+        }
+        
+        throw new Error(errorData.error || 'Failed to delete item');
       }
 
       // Remove the deleted item from the state

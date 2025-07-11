@@ -144,5 +144,37 @@ describe('App Component', () => {
         expect(screen.getByText(/Error deleting item/)).toBeInTheDocument();
       });
     });
+    
+    it('should show specific error message when trying to delete an item less than 5 days old', async () => {
+      const user = userEvent.setup();
+      
+      // Set up the server to return a 403 for a specific ID
+      server.use(
+        rest.delete('/api/items/1', (req, res, ctx) => {
+          return res(ctx.status(403), ctx.json({ 
+            error: 'Cannot delete items newer than 5 days',
+            itemAge: 3
+          }));
+        })
+      );
+      
+      render(<App />);
+      
+      // Wait for items to load
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Get the first delete button (which corresponds to ID 1)
+      const deleteButton = screen.getAllByRole('button', { name: /delete/i })[0];
+      
+      // Click the delete button
+      await user.click(deleteButton);
+      
+      // Check if specific error message about item age is displayed
+      await waitFor(() => {
+        expect(screen.getByText(/Item is too new \(3 days old\). Items must be at least 5 days old to delete./)).toBeInTheDocument();
+      });
+    });
   });
 });
