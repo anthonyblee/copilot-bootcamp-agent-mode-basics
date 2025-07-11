@@ -66,7 +66,7 @@ app.post('/api/items', (req, res) => {
 app.delete('/api/items/:id', (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate that ID is a valid number
     const numericId = parseInt(id, 10);
     if (isNaN(numericId)) {
