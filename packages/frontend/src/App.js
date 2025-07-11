@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  TextField,
+  Button,
+  Box,
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function App() {
   const [data, setData] = useState([]);
@@ -75,65 +89,83 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
+    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          bgcolor: '#282c34',
+          color: 'white',
+          p: 3,
+          borderRadius: 2,
+          mb: 3,
+          textAlign: 'center',
+        }}
+      >
         <h1>Hello World</h1>
         <p>Connected to in-memory database</p>
-      </header>
+      </Paper>
 
       <main>
-        <section className="add-item-section">
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
           <h2>Add New Item</h2>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
               value={newItem}
               onChange={e => setNewItem(e.target.value)}
               placeholder="Enter item name"
+              label="Item Name"
             />
-            <button type="submit">Add Item</button>
-          </form>
-        </section>
+            <Button type="submit" variant="contained" color="primary" disabled={!newItem.trim()}>
+              Add Item
+            </Button>
+          </Box>
+        </Paper>
 
-        <section className="items-section">
+        <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
           <h2>Items from Database</h2>
           {loading && <p>Loading data...</p>}
           {error && <p className="error">{error}</p>}
           {!loading &&
             !error &&
             (data.length > 0 ? (
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map(item => (
-                    <tr key={item.id}>
-                      <td>{item.id}</td>
-                      <td>{item.name}</td>
-                      <td>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="delete-button"
-                          aria-label={`Delete ${item.name}`}
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <TableContainer component={Paper} sx={{ mt: 2 }}>
+                <Table aria-label="items table">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell align="center">ID</TableCell>
+                      <TableCell align="center">Name</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell align="center">{item.id}</TableCell>
+                        <TableCell align="center">{item.name}</TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            onClick={() => handleDelete(item.id)}
+                            aria-label={`Delete ${item.name}`}
+                            color="error"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             ) : (
               <p>No items found. Add some!</p>
             ))}
-        </section>
+        </Paper>
       </main>
-    </div>
+    </Box>
   );
 }
 
