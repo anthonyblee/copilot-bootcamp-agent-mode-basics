@@ -23,6 +23,41 @@ describe('API Endpoints', () => {
       expect(item).toHaveProperty('name');
       expect(item).toHaveProperty('created_at');
     });
+
+    it('should return an empty array when there are no items', async () => {
+      // Clear the items table temporarily
+      db.prepare('DELETE FROM items').run();
+      
+      const response = await request(app).get('/api/items');
+      
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(0);
+      
+      // Re-insert initial data for other tests
+      const initialItems = ['Item 1', 'Item 2', 'Item 3'];
+      const insertStmt = db.prepare('INSERT INTO items (name) VALUES (?)');
+      initialItems.forEach(item => {
+        insertStmt.run(item);
+      });
+    });
+    
+    it('should handle database errors', async () => {
+      // Mock db.prepare to throw an error
+      const originalPrepare = db.prepare;
+      db.prepare = jest.fn(() => {
+        throw new Error('Database error');
+      });
+      
+      const response = await request(app).get('/api/items');
+      
+      // Restore original function
+      db.prepare = originalPrepare;
+      
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toBe('Failed to fetch items');
+    });
   });
 
   describe('POST /api/items', () => {
@@ -59,6 +94,38 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
       expect(response.body.error).toBe('Item name is required');
+    });
+
+    it('should return 400 if name is not a string', async () => {
+      const response = await request(app)
+        .post('/api/items')
+        .send({ name: 123 })
+        .set('Accept', 'application/json');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toBe('Item name is required');
+    });
+    
+    it('should handle database errors during item creation', async () => {
+      // Mock the insertStmt.run to throw an error
+      const { insertStmt } = require('../src/app');
+      const originalRun = insertStmt.run;
+      insertStmt.run = jest.fn(() => {
+        throw new Error('Database error');
+      });
+      
+      const response = await request(app)
+        .post('/api/items')
+        .send({ name: 'Will Fail' })
+        .set('Accept', 'application/json');
+      
+      // Restore original function
+      insertStmt.run = originalRun;
+      
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toBe('Failed to create item');
     });
   });
 
@@ -158,6 +225,56 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
       expect(response.body.error).toBe('Invalid item ID');
+    });
+    
+    it('should handle database errors during item deletion', async () => {
+      // Insert a test item that's old enough to delete
+      const mockCurrentDate = new Date('2023-01-10T00:00:00Z').getTime();
+      const origDateNow = Date.now;
+      
+      Date.now = jest.fn(() => mockCurrentDate);
+      global.Date = class extends Date {
+        constructor(date) {
+          if (date) {
+            return super(date);
+          }
+          return new Date(mockCurrentDate);
+        }
+      };
+      
+      // Insert an item with a created_at date that's older than 5 days
+      const oldDate = new Date('2023-01-01T00:00:00Z').toISOString(); // 9 days old
+      const stmt = db.prepare('INSERT INTO items (name, created_at) VALUES (?, ?)');
+      const result = stmt.run('Database Error Test Item', oldDate);
+      const itemId = result.lastInsertRowid;
+      
+      // Mock the db.prepare for DELETE to throw an error
+      const originalPrepare = db.prepare;
+      let prepareCallCount = 0;
+      
+      // This will allow the SELECT to work but make the DELETE fail
+      db.prepare = jest.fn((query) => {
+        prepareCallCount++;
+        
+        // The first prepare call is for SELECT to check if item exists
+        if (prepareCallCount === 1) {
+          return originalPrepare(query);
+        }
+        
+        // The second prepare call is for the DELETE operation - throw error
+        throw new Error('Database error');
+      });
+      
+      const response = await request(app).delete(`/api/items/${itemId}`);
+      
+      // Restore original functions
+      db.prepare = originalPrepare;
+      Date.now = origDateNow;
+      global.Date = Date;
+      
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toBe('Failed to delete item');
     });
   });
 });

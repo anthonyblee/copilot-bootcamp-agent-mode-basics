@@ -47,6 +47,146 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('App Component', () => {
+  describe('Initial Data Loading', () => {
+    it('should display loading state initially', () => {
+      render(<App />);
+      expect(screen.getByText('Loading data...')).toBeInTheDocument();
+    });
+
+    it('should display items after successful data fetch', async () => {
+      render(<App />);
+      
+      // Wait for items to load
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Check if all mock items are displayed
+      mockItems.forEach(item => {
+        expect(screen.getByText(item.name)).toBeInTheDocument();
+      });
+    });
+
+    it('should handle network errors when fetching data', async () => {
+      // Override the server response for this test only
+      server.use(
+        rest.get('/api/items', (req, res, ctx) => {
+          return res(ctx.status(500), ctx.json({ error: 'Server error' }));
+        })
+      );
+      
+      render(<App />);
+      
+      // Wait for error message to be displayed
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to fetch data/)).toBeInTheDocument();
+      });
+    });
+
+    it('should display empty state when no items are returned', async () => {
+      // Override the server response to return empty array
+      server.use(
+        rest.get('/api/items', (req, res, ctx) => {
+          return res(ctx.status(200), ctx.json([]));
+        })
+      );
+      
+      render(<App />);
+      
+      // Wait for loading to finish
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Check if empty state message is displayed
+      expect(screen.getByText('No items found. Add some!')).toBeInTheDocument();
+    });
+  });
+
+  describe('Add Item Functionality', () => {
+    it('should add a new item when form is submitted', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      
+      // Wait for items to load
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Fill in the form
+      const input = screen.getByLabelText('Item Name');
+      await user.type(input, 'New Test Item');
+      
+      // Submit the form
+      const addButton = screen.getByRole('button', { name: /add item/i });
+      await user.click(addButton);
+      
+      // Check if new item is added to the list
+      await waitFor(() => {
+        expect(screen.getByText('New Test Item')).toBeInTheDocument();
+      });
+      
+      // Input should be cleared after submission
+      expect(input).toHaveValue('');
+    });
+
+    it('should disable the Add Item button when input is empty', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      
+      // Wait for items to load
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Check if button is initially disabled
+      const addButton = screen.getByRole('button', { name: /add item/i });
+      expect(addButton).toBeDisabled();
+      
+      // Fill in the form
+      const input = screen.getByLabelText('Item Name');
+      await user.type(input, 'Test');
+      
+      // Button should be enabled
+      expect(addButton).toBeEnabled();
+      
+      // Clear the input
+      await user.clear(input);
+      
+      // Button should be disabled again
+      expect(addButton).toBeDisabled();
+    });
+
+    it('should handle errors when adding a new item', async () => {
+      // Override the server response for this test only
+      server.use(
+        rest.post('/api/items', (req, res, ctx) => {
+          return res(ctx.status(400), ctx.json({ error: 'Invalid item name' }));
+        })
+      );
+      
+      const user = userEvent.setup();
+      render(<App />);
+      
+      // Wait for items to load
+      await waitFor(() => {
+        expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+      });
+      
+      // Fill in the form
+      const input = screen.getByLabelText('Item Name');
+      await user.type(input, 'Will Fail');
+      
+      // Submit the form
+      const addButton = screen.getByRole('button', { name: /add item/i });
+      await user.click(addButton);
+      
+      // Check if error message is displayed
+      await waitFor(() => {
+        expect(screen.getByText(/Error adding item/)).toBeInTheDocument();
+      });
+    });
+  });
   describe('Delete Functionality', () => {
     it('should render delete buttons for each item', async () => {
       render(<App />);
