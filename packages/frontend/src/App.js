@@ -99,26 +99,38 @@ function App() {
           <h2>Items from Database</h2>
           {loading && <p>Loading data...</p>}
           {error && <p className="error">{error}</p>}
-          {!loading && !error && (
-            <ul>
-              {data.length > 0 ? (
-                data.map(item => (
-                  <li key={item.id}>
-                    <span>{item.name}</span>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="delete-button"
-                      aria-label={`Delete ${item.name}`}
-                    >
-                      🗑️
-                    </button>
-                  </li>
-                ))
-              ) : (
-                <p>No items found. Add some!</p>
-              )}
-            </ul>
-          )}
+          {!loading &&
+            !error &&
+            (data.length > 0 ? (
+              <table className="items-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td>{item.name}</td>
+                      <td>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="delete-button"
+                          aria-label={`Delete ${item.name}`}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No items found. Add some!</p>
+            ))}
         </section>
       </main>
     </div>

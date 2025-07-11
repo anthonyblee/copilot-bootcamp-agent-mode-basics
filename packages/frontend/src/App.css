@@ -58,21 +58,30 @@ button:hover {
   background-color: #21a1c9;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 }
 
-li {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+.items-table th,
+.items-table td {
+  padding: 12px;
   text-align: left;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-bottom: 1px solid #ddd;
 }
 
-li:last-child {
+.items-table th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+}
+
+.items-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.items-table tbody tr:last-child td {
   border-bottom: none;
 }
 
@@ -84,6 +93,8 @@ li:last-child {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: block;
+  margin: 0 auto;
 }
 
 .delete-button:hover {
